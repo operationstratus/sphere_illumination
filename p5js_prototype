@@ -1,0 +1,55 @@
+v = [0, -1, 0];
+
+function setup() {
+  createCanvas(800, 800);
+}
+
+c = ["M", "m", "+", "-", ".", " "]
+
+function draw() {
+  
+  
+  translate(width/2, height/2);
+  background(0);
+  
+  let r = width/6;
+  let j = 0;
+  let p = 3;
+  
+  mx = mouseX - width/2;
+  my = mouseY - height/2;
+
+  
+  if (mx*mx + my*my <= r*r) {
+    mz = sqrt(r*r-mx*mx-my*my); // OBS detta begränsar punkterna till halvklotet på den positiva  sidan om xy-planet i z-led
+    v = [mx, my, mz];
+    print(v);
+  }
+  
+  textAlign(CENTER);
+  fill(255);
+  textSize(p);
+  for (i = -width/2; i <= width/2; i+= p) {
+    for (j = -width/2; j <= width/2; j+= p) {
+      if (i*i + j*j <= r*r) {
+        z = sqrt(r*r-i*i-j*j);
+        u = [i, j, z];
+        nu = sqrt(u[0]*u[0] + u[1]*u[1] + u[2]*u[2]);
+        nv = sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]);
+        b = (v[0]*u[0] + v[1]*u[1] + v[2]*u[2]) / (nv * nu);
+        //let m = map(value, 0, 100, 0, width);
+        let symbol = c[round(map(b, 0, 1, c.length - 1, 0))]
+        
+        text(symbol, i, j);
+      } else if (j >= r/2) {
+        
+        z = (j-r)*10;
+        t = -(v[0]*i + v[1]*j + v[2]*z)/(sq(v[0])+sq(v[1])+sq(v[2]));
+        if (sq(i+t*v[0]) + sq(j+t*v[1]) + sq(z+t*v[2]) > r*r) {
+          text(c[0], i, j);
+        }
+      }
+    }
+  }
+  
+}
