@@ -1,0 +1,83 @@
+import tkinter as tk
+import math
+
+
+
+# variables not to change. You change, you die.
+window_side = 600
+characters_y = 100
+
+k = 0.015
+ratio_W_to_H = k * characters_y
+characters_x = math.floor(ratio_W_to_H * characters_y)
+character_width = math.floor(window_side / characters_y)
+
+
+# variables to change
+r = 100
+v = [0, 1, 0]
+c = ["M", "@", "N", "n", "+", "/", ",", ".", " "]
+
+
+def norm(vector):
+    Sum= 0
+    for coordinate in vector:
+        Sum += coordinate**2
+    return math.sqrt(Sum)
+
+def angle_between_vectors(v, u):
+    angle = (v[0]*u[0] + v[1]*u[1] + v[2]*u[2]) / (norm(v) * norm(u))
+    return angle
+
+window = tk.Tk()
+t =""
+for y in range(0, characters_y):
+        for x in range(0, characters_x):
+            t += " "
+        if y < characters_y -1:
+            t+="\n"
+
+l = tk.Label(master=window, borderwidth=0, text=t, font=("Courier", character_width))
+l.pack()
+
+
+def motion(event):
+    mouseX = event.x - window_side / 2
+    mouseY = event.y - window_side / 2
+    print(str(mouseX) + ", " + str(mouseY))
+    if mouseX**2 + mouseY**2 <= r*r:
+        Z = math.sqrt(r*r - mouseX**2 - mouseY**2)
+        v = [mouseX, mouseY, Z]
+
+    t = ""
+    for y in range(0, characters_y):
+        for x in range(0, characters_x):
+            X = x * character_width * (1 / ratio_W_to_H) - window_side /2
+            Y = y * character_width - window_side /2
+            if X*X + Y*Y <= r*r:
+                Z = math.sqrt(r*r - X*X - Y*Y)
+                u = [X, Y, Z]
+                b = angle_between_vectors(u, v)
+                
+                if b >= 0:
+                    character = c[round((len(c)-1)*b)]
+                else:
+                    character = c[0]
+            else:
+                character = " "
+                '''
+                Z = (Y-r)*10
+                t = -(v[0]*X + v[1]*Y + v[2]*Z)/((v[0])**2+(v[1])**2+(v[2])**2)
+                if ((X+t*v[0])**2 + (Y+t*v[1])**2 + (Z+t*v[2])**2 <= r*r):
+                    character = c[0]
+                else:
+                    character = " "
+                '''
+            #print(character)
+            t += character
+        if y < characters_y -1:
+            t+="\n"
+    l.configure(text=t)
+
+window.bind('<Motion>', motion)
+window.mainloop()
