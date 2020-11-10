@@ -2,8 +2,7 @@ import tkinter as tk
 import math
 
 
-
-# variables not to change. You change, you die.
+# variables to not change. You change, you die
 window_side = 600
 characters_y = 100
 
@@ -13,10 +12,12 @@ characters_x = math.floor(ratio_W_to_H * characters_y)
 character_width = math.floor(window_side / characters_y)
 
 
+
 # variables to change
 r = 100
 v = [0, 1, 0]
-c = ["M", "@", "N", "n", "+", "/", ",", ".", " "]
+c = ["M", "N", "+", "/", ",", "'", " "]
+shadow_character = "#"
 
 
 def norm(vector):
@@ -37,8 +38,19 @@ for y in range(0, characters_y):
         if y < characters_y -1:
             t+="\n"
 
+def ground_character(X, Y, Z, v):
+    Z = (Y-r)*7
+    t = -(v[0]*X + v[1]*Y + v[2]*Z)/((v[0])**2+(v[1])**2+(v[2])**2)
+    if (X+t*v[0])**2 + (Y+t*v[1])**2 + (Z+t*v[2])**2 <= r*r and Z < 0:
+        character = shadow_character
+    else:
+        character = " "
+    return character
+
+
 l = tk.Label(master=window, borderwidth=0, text=t, font=("Courier", character_width))
 l.pack()
+
 
 
 def motion(event):
@@ -47,7 +59,7 @@ def motion(event):
     print(str(mouseX) + ", " + str(mouseY))
     if mouseX**2 + mouseY**2 <= r*r:
         Z = math.sqrt(r*r - mouseX**2 - mouseY**2)
-        v = [mouseX, mouseY, Z]
+        v = [mouseX, mouseY, Z] # the vector from origin pointing to the mouse location on the sphere
 
     t = ""
     for y in range(0, characters_y):
@@ -55,29 +67,27 @@ def motion(event):
             X = x * character_width * (1 / ratio_W_to_H) - window_side /2
             Y = y * character_width - window_side /2
             if X*X + Y*Y <= r*r:
+                # if the current character is over the sphere
                 Z = math.sqrt(r*r - X*X - Y*Y)
-                u = [X, Y, Z]
+                u = [X, Y, Z] 
+                    #the vector from origin to the current character
                 b = angle_between_vectors(u, v)
                 
                 if b >= 0:
                     character = c[round((len(c)-1)*b)]
+                        #if angle between vector to current mouse location on sphere
+                        # and the current character location is greater than 0
+                        # map the range [0, 0] of b to the range of indexes in the list c
                 else:
                     character = c[0]
             else:
-                character = " "
-                '''
-                Z = (Y-r)*10
-                t = -(v[0]*X + v[1]*Y + v[2]*Z)/((v[0])**2+(v[1])**2+(v[2])**2)
-                if ((X+t*v[0])**2 + (Y+t*v[1])**2 + (Z+t*v[2])**2 <= r*r):
-                    character = c[0]
-                else:
-                    character = " "
-                '''
-            #print(character)
+                character = ground_character(X, Y, Z, v)
             t += character
         if y < characters_y -1:
             t+="\n"
     l.configure(text=t)
 
 window.bind('<Motion>', motion)
+
+
 window.mainloop()
