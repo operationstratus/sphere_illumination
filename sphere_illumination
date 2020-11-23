@@ -1,16 +1,16 @@
 import tkinter as tk
 import math
 
+# variables NOT to change. You change, you die
+window = tk.Tk()
 
 # variables to not change. You change, you die
 window_side = 600
 characters_y = 100
-
 k = 0.015
 ratio_W_to_H = k * characters_y
 characters_x = math.floor(ratio_W_to_H * characters_y)
 character_width = math.floor(window_side / characters_y)
-
 
 
 # variables to change
@@ -18,6 +18,7 @@ r = 100
 v = [0, 1, 0]
 c = ["M", "N", "+", "/", ",", "'", " "]
 shadow_character = "#"
+
 
 
 def norm(vector):
@@ -30,64 +31,154 @@ def angle_between_vectors(v, u):
     angle = (v[0]*u[0] + v[1]*u[1] + v[2]*u[2]) / (norm(v) * norm(u))
     return angle
 
-window = tk.Tk()
-t =""
-for y in range(0, characters_y):
-        for x in range(0, characters_x):
-            t += " "
-        if y < characters_y -1:
-            t+="\n"
+def vector_subtraction(vec1, vec2):
+    vecnew = []
+    for i in range(len(vec1)):
+        vecnew.append(vec1[i]-vec2[i])
+    return vecnew
 
-def ground_character(X, Y, Z, v):
-    Z = (Y-r)*7
-    t = -(v[0]*X + v[1]*Y + v[2]*Z)/((v[0])**2+(v[1])**2+(v[2])**2)
-    if (X+t*v[0])**2 + (Y+t*v[1])**2 + (Z+t*v[2])**2 <= r*r and Z < 0:
-        character = shadow_character
-    else:
-        character = " "
-    return character
+def dot_product(vec1, vec2):
+    Sum = 0
+    for i in range(len(vec1)):
+        Sum += vec1[i] * vec2[i]
+    return Sum
 
-
-l = tk.Label(master=window, borderwidth=0, text=t, font=("Courier", character_width))
-l.pack()
+def scale(scalar, vec):
+    for i in range(len(vec)):
+        vec[i] = vec[i]*scalar
+    return vec
 
 
-
-def motion(event):
+class Pixel:
+    def __init__(self, x, y, r, end):
+        # variables that are directly passed in:
+        self.__r = r
+        self.__x = x * character_width * (1 / ratio_W_to_H) - window_side /2
+        self.__y = y * character_width - window_side /2
+        self.__end = end
+        # variables that are not directly passed in:
+        if self.__x**2 + self.__y**2 <= self.__r**2:
+            # if the current x and y are inside the two dimensional circle on the screen:
+            # (and therefore also on the surface of the three dimensional sphere:)
+            self.__z = math.sqrt(self.__r**2 - self.__x**2 - self.__y**2)
+            # the current z value is on the sphere surface (on the positive z axis)
+            self.__in_circle = True
+        else:
+            # if not in the circle (and therefore not in the sphere):
+            self.__z = (self.__y - self.__r) * 5
+            # the current z value is on the groud plane
+            self.__in_circle = False
+        self.__point = [self.__x, self.__y, self.__z] # summary of the current point in R3
+        
+        # temporary variables that are to be changed into something else in the first update()
+        self.__character = " "
+        self.__sp = [0, -2*self.__r, 0]
+        
+    def __str__(self):
+        data = ""
+        data += "x = " + str(self.__x) + "\n"
+        data += "y = " + str(self.__y) + "\n"
+        data += "z = " + str(self.__z) + "\n"
+        data += "character = \'" + str(self.__character) + "\'\n"
+        data += "end character = " + str(self.__end) + "\n"
+        data += "source point = " + str(self.__sp) + "\n"
+        return data
+    
+    
+    def update(self, xm, ym):
+        # update the pixel data with the current mouse x and y coordinates
+        if xm**2 + ym**2 <= self.__r**2:
+            # if the mouse is in the circle on the screen:
+            self.__sp = source_point(xm, ym, self.__r)
+            # update the source point (see source_point function)
+        
+        if self.__in_circle:
+            
+            b = angle_between_vectors(self.__point, self.__sp)
+            if b >= 0:
+                self.__character = c[round((len(c)-1)*b)]
+            else:
+                self.__character = c[0]   
+                
+        elif not self.__in_circle:
+            s = -(dot_product(self.__point, self.__sp))/((self.__sp[0])**2+(self.__sp[1])**2+(self.__sp[2])**2)
+            if (self.__x+s*self.__sp[0])**2 + (self.__y+s*self.__sp[1])**2 + (self.__z+s*self.__sp[2])**2 <= self.__r**2 and self.__z < 0:
+                self.__character = shadow_character
+            else:
+                self.__character = " "
+            
+    def get_character(self):
+        if self.__end:
+            return self.__character + "\n"
+            # if this pixel is right at the right end side of the screen,
+            # the string has to begin a new line befor the next character
+        else:
+            return self.__character
+        
+        
+    
+def mouseX_mouseY(event):
+    # return x and y coordinates of the mouse on the screen
     mouseX = event.x - window_side / 2
     mouseY = event.y - window_side / 2
-    print(str(mouseX) + ", " + str(mouseY))
-    if mouseX**2 + mouseY**2 <= r*r:
-        Z = math.sqrt(r*r - mouseX**2 - mouseY**2)
-        v = [mouseX, mouseY, Z] # the vector from origin pointing to the mouse location on the sphere
+    print("x = "+str(mouseX)+"\n"+"y = "+str(mouseY))
+    return mouseX, mouseY
 
-    t = ""
+def create_pixels():
+    # create pixel object filling the screen with
+    # character_x characters in x direction, and character_y characters in y direction
+    pixels = []
+    
     for y in range(0, characters_y):
         for x in range(0, characters_x):
-            X = x * character_width * (1 / ratio_W_to_H) - window_side /2
-            Y = y * character_width - window_side /2
-            if X*X + Y*Y <= r*r:
-                # if the current character is over the sphere
-                Z = math.sqrt(r*r - X*X - Y*Y)
-                u = [X, Y, Z] 
-                    #the vector from origin to the current character
-                b = angle_between_vectors(u, v)
-                
-                if b >= 0:
-                    character = c[round((len(c)-1)*b)]
-                        #if angle between vector to current mouse location on sphere
-                        # and the current character location is greater than 0
-                        # map the range [0, 0] of b to the range of indexes in the list c
-                else:
-                    character = c[0]
-            else:
-                character = ground_character(X, Y, Z, v)
-            t += character
-        if y < characters_y -1:
-            t+="\n"
-    l.configure(text=t)
+            end = False
+            if x >= characters_x-1 and y < characters_y -1:
+                end = True
+                # if the current pixel is at the right side of the screen,
+                # make sure that is knows that. This will make those end pixels
+                # add a "\n" after its character to the string
+            pixels.append(Pixel(x, y, r, end))
+    return pixels
 
-window.bind('<Motion>', motion)
+def setup(pixels):
+    t0 = ""
+    # initial string for the label
+    for pixel in pixels:
+        t0 += pixel.get_character()
+    l = tk.Label(master=window, borderwidth=0, text=t0, font=("Courier", character_width))
+    l.pack()
+    return l
+
+def source_point(xm, ym, r):
+    # takes in x and y coordinates of the mouse
+    # (assuming that the mouse is inside the sphere)
+    zm = math.sqrt(r**2-xm**2-ym**2)
+    # calculate the z coordinate of the mouse location on the sphere
+    dmax = 1.5 * r
+    d = 1 + (dmax-1)*(r-ym)/(2*r)
+    # calculate a scalar d that ranges from 1 to 2.
+    # When the mouse is at the top of the sphere (ym = -r ),  d is 2
+    # When the mouse is at the bottom of the sphere (ym = r ),  d is 1
+    return [xm*d, ym*d, zm*d]
+    # return the mouse vector coordinates scaled by d
+    
+def draw(pixels, l):
+    def motion(event):
+        mouseX, mouseY = mouseX_mouseY(event)
+        t = ""
+        for pixel in pixels:
+            pixel.update(mouseX, mouseY)
+            t += pixel.get_character()
+        l.configure(text=t)
+        
+    window.bind('<Motion>', motion)
+    window.mainloop()
 
 
-window.mainloop()
+def main():
+    pixels = create_pixels()
+    label = setup(pixels)
+    draw(pixels, label)
+    print(pixels[150])
+
+main()
