@@ -3,8 +3,6 @@ import math
 
 # variables NOT to change. You change, you die
 window = tk.Tk()
-
-# variables to not change. You change, you die
 window_side = 600
 characters_y = 100
 k = 0.015
